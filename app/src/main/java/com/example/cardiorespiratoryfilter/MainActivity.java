@@ -1,25 +1,19 @@
 package com.example.cardiorespiratoryfilter;
 
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.hardware.Sensor;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.hardware.SensorEvent;
 import android.widget.CompoundButton;
-import android.widget.Filter;
 import android.widget.ToggleButton;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -49,15 +43,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     ArrayList<Double> magZ;
     //first dimension is either breathing rate or heart rate
     //0 is breathing rate, 1 is heart rate
-    double filtered_gFX[][] = new double[2][];
-    double filtered_gFY[][] = new double[2][];
-    double filtered_gFZ[][] = new double[2][];
-    double filtered_gyroX[][] = new double[2][];
-    double filtered_gyroY[][] = new double[2][];
-    double filtered_gyroZ[][] = new double[2][];
-    double filtered_magX[][] = new double[2][];
-    double filtered_magY[][] = new double[2][];
-    double filtered_magZ[][] = new double[2][];
+    double[][] filtered_gFX = new double[2][];
+    double[][] filtered_gFY = new double[2][];
+    double[][] filtered_gFZ = new double[2][];
+    double[][] filtered_gyroX = new double[2][];
+    double[][] filtered_gyroY = new double[2][];
+    double[][] filtered_gyroZ = new double[2][];
+    double[][] filtered_magX = new double[2][];
+    double[][] filtered_magY = new double[2][];
+    double[][] filtered_magZ = new double[2][];
 
 
     StringBuilder dataString = new StringBuilder("time (s), gFX (m/s^2), gFY (m/s^2), gFZ (m/s^2), gyroX (rad/s), gyroY (rad/s), gyroZ (rad/s), magX (µT), magY (µT), magZ (µT)," +
@@ -116,7 +110,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private String getStorage(){
-        return this.getExternalFilesDir(null).getAbsolutePath();
+        return this.getFilesDir().getAbsolutePath();
     }
 
     public void onSensorChanged(SensorEvent event){
@@ -142,16 +136,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void initializeLists(){
-        timestamp = new ArrayList<Float>();
-        gFX = new ArrayList<Double>();
-        gFY = new ArrayList<Double>();
-        gFZ = new ArrayList<Double>();
-        gyroX = new ArrayList<Double>();
-        gyroY = new ArrayList<Double>();
-        gyroZ = new ArrayList<Double>();
-        magX = new ArrayList<Double>();
-        magY = new ArrayList<Double>();
-        magZ = new ArrayList<Double>();
+        timestamp = new ArrayList<>();
+        gFX = new ArrayList<>();
+        gFY = new ArrayList<>();
+        gFZ = new ArrayList<>();
+        gyroX = new ArrayList<>();
+        gyroY = new ArrayList<>();
+        gyroZ = new ArrayList<>();
+        magX = new ArrayList<>();
+        magY = new ArrayList<>();
+        magZ = new ArrayList<>();
     }
 
     private int shortestList(){
