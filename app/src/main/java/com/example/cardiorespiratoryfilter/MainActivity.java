@@ -2,6 +2,7 @@ package com.example.cardiorespiratoryfilter;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -18,6 +19,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -34,6 +36,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     boolean isRecording = false;
     FileWriter Squidward;
+    //Arraylists to retrieve data
     ArrayList<Float> timestamp;
     ArrayList<Double> gFX;
     ArrayList<Double> gFY;
@@ -44,15 +47,27 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     ArrayList<Double> magX;
     ArrayList<Double> magY;
     ArrayList<Double> magZ;
-    //ArrayList<Double> Filtered_Data;
-    double convertedData[];
-    double Filtered_Data[];
+    //first dimension is either breathing rate or heart rate
+    //0 is breathing rate, 1 is heart rate
+    double filtered_gFX[][] = new double[2][];
+    double filtered_gFY[][] = new double[2][];
+    double filtered_gFZ[][] = new double[2][];
+    double filtered_gyroX[][] = new double[2][];
+    double filtered_gyroY[][] = new double[2][];
+    double filtered_gyroZ[][] = new double[2][];
+    double filtered_magX[][] = new double[2][];
+    double filtered_magY[][] = new double[2][];
+    double filtered_magZ[][] = new double[2][];
+
+
+    StringBuilder dataString = new StringBuilder("time (s), gFX (m/s^2), gFY (m/s^2), gFZ (m/s^2), gyroX (rad/s), gyroY (rad/s), gyroZ (rad/s), magX (µT), magY (µT), magZ (µT)," +
+            " BR_Filtered gFX (m/s^2), BR_Filtered gFY (m/s^2), BR_Filtered gFZ (m/s^2), BR_Filtered gyroX (rad/s), BR_Filtered gyroY (rad/s), BR_Filtered gyroZ (rad/s)," +
+            " BR_Filtered magX (µT), BR_Filtered magY (µT), BR_Filtered magZ (µT), HR_Filtered gFX (m/s^2), HR_Filtered gFY (m/s^2), HR_Filtered gFZ (m/s^2)," +
+            " HR_Filtered gyroX (rad/s), HR_Filtered gyroY (rad/s), HR_Filtered gyroZ (rad/s), HR_Filtered magX (µT), HR_Filtered magY (µT), HR_Filtered magZ (µT)\n");
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -85,15 +100,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     isRecording = false;
                     Eugene.flush(MainActivity.this);
                     Eugene.unregisterListener(MainActivity.this);
-                    convertedData = convertArray(gFZ);
-                    Filtered_Data = FilterBrHr(convertedData, true);
+                    getFilteredData();
                     try {
                         Squidward = new FileWriter(new File(getStorage(), "Sensordata_" + System.currentTimeMillis() + ".csv"));
-                        Squidward.write("time (s), gFX (m/s^2), gFY (m/s^2), gFZ (m/s^2), gyroX (rad/s), gyroY (rad/s), gyroZ (rad/s), magX (uT), magY (uT), magZ (uT), Filtered gFZ\n");
-                        int shortestLength = shortestList();
-                        for(int i = 0; i < shortestLength; i++){
-                            Squidward.write(String.format("%.2f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", timestamp.get(i), gFX.get(i), gFY.get(i), gFZ.get(i), gyroX.get(i), gyroY.get(i), gyroZ.get(i), magX.get(i), magY.get(i), magZ.get(i), Filtered_Data[i]));
-                        }
+                        logDataToFile();
+                        Squidward.write(String.valueOf(dataString));
                         Squidward.close();
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -169,6 +180,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return result;
     }
 
+    @SuppressLint("DefaultLocale")
+    public void logDataToFile(){
+        for(int i = 0; i < shortestList(); i++){
+            dataString.append(String.format("%.2f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n",
+                    timestamp.get(i), gFX.get(i), gFY.get(i), gFZ.get(i), gyroX.get(i), gyroY.get(i), gyroZ.get(i), magX.get(i), magY.get(i), magZ.get(i),
+                    filtered_gFX[0][i], filtered_gFY[0][i], filtered_gFZ[0][i], filtered_gyroX[0][i], filtered_gyroY[0][i], filtered_gyroZ[0][i],
+                    filtered_magX[0][i], filtered_magY[0][i], filtered_magZ[0][i], filtered_gFX[1][i], filtered_gFY[1][i], filtered_gFZ[1][i],
+                    filtered_gyroX[1][i], filtered_gyroY[1][i], filtered_gyroZ[1][i], filtered_magX[0][i], filtered_magY[0][i], filtered_magZ[0][i]));
+        }
+    }
+
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
 
@@ -189,6 +211,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         return result;
+    }
+
+    public void getFilteredData(){
+        filtered_gFX[0] = FilterBrHr(convertArray(gFX), true);
+        filtered_gFY[0] = FilterBrHr(convertArray(gFY), true);
+        filtered_gFZ[0] = FilterBrHr(convertArray(gFZ), true);
+        filtered_gFX[1] = FilterBrHr(convertArray(gFX), false);
+        filtered_gFY[1] = FilterBrHr(convertArray(gFY), false);
+        filtered_gFZ[1] = FilterBrHr(convertArray(gFZ), false);
+
+        filtered_gyroX[0] = FilterBrHr(convertArray(gyroX), true);
+        filtered_gyroY[0] = FilterBrHr(convertArray(gyroY), true);
+        filtered_gyroZ[0] = FilterBrHr(convertArray(gyroZ), true);
+        filtered_gyroX[1] = FilterBrHr(convertArray(gyroX), false);
+        filtered_gyroY[1] = FilterBrHr(convertArray(gyroY), false);
+        filtered_gyroZ[1] = FilterBrHr(convertArray(gyroZ), false);
+
+        filtered_magX[0] = FilterBrHr(convertArray(magX), true);
+        filtered_magY[0] = FilterBrHr(convertArray(magY), true);
+        filtered_magZ[0] = FilterBrHr(convertArray(magZ), true);
+        filtered_magX[1] = FilterBrHr(convertArray(magX), false);
+        filtered_magY[1] = FilterBrHr(convertArray(magY), false);
+        filtered_magZ[1] = FilterBrHr(convertArray(magZ), false);
     }
 
     /**
