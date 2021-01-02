@@ -53,6 +53,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     double[][] filtered_magY = new double[2][];
     double[][] filtered_magZ = new double[2][];
 
+    double estimatedBR;
+
 
     StringBuilder dataString = new StringBuilder("time (s), gFX (m/s^2), gFY (m/s^2), gFZ (m/s^2), gyroX (rad/s), gyroY (rad/s), gyroZ (rad/s), magX (µT), magY (µT), magZ (µT)," +
             " BR_Filtered gFX (m/s^2), BR_Filtered gFY (m/s^2), BR_Filtered gFZ (m/s^2), BR_Filtered gyroX (rad/s), BR_Filtered gyroY (rad/s), BR_Filtered gyroZ (rad/s)," +
@@ -75,6 +77,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         record = (ToggleButton) findViewById(R.id.toggleButton);
         record.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @SuppressLint("DefaultLocale")
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     // The toggle is enabled
@@ -95,10 +98,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     Eugene.flush(MainActivity.this);
                     Eugene.unregisterListener(MainActivity.this);
                     getFilteredData();
+                    estimatedBR = BreathingRateFFT(filtered_gyroX[0], 50);
                     try {
                         Squidward = new FileWriter(new File(getStorage(), "Sensordata_" + System.currentTimeMillis() + ".csv"));
                         logDataToFile();
                         Squidward.write(String.valueOf(dataString));
+                        Squidward.write("Estimated Breaths per minute:," +  String.format("%.2f", estimatedBR)  + "\n");
                         Squidward.close();
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -110,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private String getStorage(){
-        return this.getFilesDir().getAbsolutePath();
+        return this.getExternalFilesDir(null).getAbsolutePath();
     }
 
     public void onSensorChanged(SensorEvent event){
@@ -235,6 +240,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * which is packaged with this application.
      */
     public native double[] FilterBrHr(double[] data, boolean BR);
+
+    public native double BreathingRateFFT(double[] data, int samplingFreq);
 
     // Used to load the 'native-lib' library on application startup.
     static {

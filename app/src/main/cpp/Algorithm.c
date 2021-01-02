@@ -6,7 +6,8 @@
 #include "Filters_emxutil.h"
 #include "Filters_types.h"
 #include "rtwtypes.h"
-
+#include "BreathingMaxFFT.h"
+#include "BreathingMaxFFT_types.h"
 
 JNIEXPORT jdoubleArray JNICALL Java_com_example_cardiorespiratoryfilter_MainActivity_FilterBrHr(JNIEnv* env, jobject this, jdoubleArray dataARR, jboolean isBreathing) {
     jsize size = (*env)->GetArrayLength(env, dataARR);
@@ -41,4 +42,24 @@ JNIEXPORT jdoubleArray JNICALL Java_com_example_cardiorespiratoryfilter_MainActi
     return result;
 
 }
+
+JNIEXPORT jdouble JNICALL Java_com_example_cardiorespiratoryfilter_MainActivity_BreathingRateFFT(JNIEnv* env, jobject this, jdoubleArray dataARR, jint samplingFreq) {
+    jsize size = (*env)->GetArrayLength(env, dataARR);
+    jdouble *body = (*env)->GetDoubleArrayElements(env, dataARR, 0);
+
+    emxArray_real_T *dataArray = NULL;
+    dataArray = emxCreateWrapper_real_T(body, size, 1);
+
+    jdouble result;
+
+    BreathingMaxFFT_initialize();
+
+    result = BreathingMaxFFT(dataArray, samplingFreq);
+
+    BreathingMaxFFT_terminate();
+
+    return result;
+}
+
+
 
