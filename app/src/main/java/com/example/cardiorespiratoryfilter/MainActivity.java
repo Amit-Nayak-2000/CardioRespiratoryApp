@@ -3,17 +3,23 @@ package com.example.cardiorespiratoryfilter;
 import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.hardware.SensorEvent;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.ToggleButton;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -25,6 +31,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     Sensor Magnetometer;
 
     ToggleButton record;
+    Button plot;
     Timer timer;
     float time;
 
@@ -52,8 +59,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     double[][] filtered_magX = new double[2][];
     double[][] filtered_magY = new double[2][];
     double[][] filtered_magZ = new double[2][];
-
+    public ArrayList<String> fileList;
     double estimatedBR;
+
+//    listView listview;
 
 
     StringBuilder dataString = new StringBuilder("time (s), gFX (m/s^2), gFY (m/s^2), gFZ (m/s^2), gyroX (rad/s), gyroY (rad/s), gyroZ (rad/s), magX (µT), magY (µT), magZ (µT)," +
@@ -75,7 +84,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         Magnetometer = Eugene.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
 
-        record = (ToggleButton) findViewById(R.id.toggleButton);
+        record = findViewById(R.id.toggleButton);
+        plot = findViewById(R.id.plot_button);
+        fileList = new ArrayList<String>();
+
         record.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @SuppressLint("DefaultLocale")
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -112,10 +124,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
+        plot.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                File root = new File(getStorage());
+                listDirectory(root);
+                Intent intent = new Intent(MainActivity.this, Fileviewer.class);
+                Bundle args = new Bundle();
+                args.putSerializable("ARRAYLIST", (Serializable)fileList);
+                intent.putExtra("BUNDLE", args);
+                startActivity(intent);
+            }
+        });
+
     }
 
-    private String getStorage(){
-        return this.getExternalFilesDir(null).getAbsolutePath();
+    void listDirectory(File root){
+        File[] files = root.listFiles();
+        fileList.clear();
+        for(File file : files) {
+            fileList.add(file.getPath());
+        }
+    }
+
+    public String getStorage(){
+        return Objects.requireNonNull(this.getExternalFilesDir(null)).getAbsolutePath();
     }
 
     public void onSensorChanged(SensorEvent event){
@@ -235,10 +268,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         filtered_magZ[1] = FilterBrHr(convertArray(magZ), false);
     }
 
-    /**
-     * A native method that is implemented by the 'native-lib' native library,
-     * which is packaged with this application.
-     */
     public native double[] FilterBrHr(double[] data, boolean BR);
 
     public native double BreathingRateFFT(double[] data, int samplingFreq);

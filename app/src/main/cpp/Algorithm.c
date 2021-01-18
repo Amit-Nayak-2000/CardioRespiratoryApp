@@ -61,5 +61,3 @@ JNIEXPORT jdouble JNICALL Java_com_example_cardiorespiratoryfilter_MainActivity_
     return result;
 }
 
-
-
