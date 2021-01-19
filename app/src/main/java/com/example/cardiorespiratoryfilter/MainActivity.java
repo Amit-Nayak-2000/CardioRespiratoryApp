@@ -115,6 +115,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         Squidward = new FileWriter(new File(getStorage(), "Sensordata_" + System.currentTimeMillis() + ".csv"));
                         logDataToFile();
                         Squidward.write(String.valueOf(dataString));
+                        Squidward.write("\n");
                         Squidward.write("Estimated Breaths per minute:," +  String.format("%.2f", estimatedBR)  + "\n");
                         Squidward.close();
                     } catch (IOException e) {
