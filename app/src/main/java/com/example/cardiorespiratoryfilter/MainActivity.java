@@ -10,7 +10,6 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.hardware.SensorEvent;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.ToggleButton;
@@ -37,7 +36,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     boolean isRecording = false;
     FileWriter Squidward;
-    //Arraylists to retrieve data
     ArrayList<Float> timestamp;
     ArrayList<Double> gFX;
     ArrayList<Double> gFY;
@@ -62,7 +60,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public ArrayList<String> fileList;
     double estimatedBR;
 
-//    listView listview;
 
 
     StringBuilder dataString = new StringBuilder("time (s), gFX (m/s^2), gFY (m/s^2), gFZ (m/s^2), gyroX (rad/s), gyroY (rad/s), gyroZ (rad/s), magX (µT), magY (µT), magZ (µT)," +
@@ -106,6 +103,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 else {
                     // The toggle is disabled
                     timer.cancel();
+                    time = 0;
                     isRecording = false;
                     Eugene.flush(MainActivity.this);
                     Eugene.unregisterListener(MainActivity.this);
