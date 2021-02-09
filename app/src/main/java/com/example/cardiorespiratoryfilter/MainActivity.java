@@ -119,6 +119,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+                    clearEntries();
                 }
             }
         });
@@ -185,6 +186,34 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         magZ = new ArrayList<>();
     }
 
+    private void clearEntries(){
+        timestamp.clear();
+        gFX.clear();
+        gFY.clear();
+        gFZ.clear();
+        gyroX.clear();
+        gyroY.clear();
+        gyroZ.clear();
+        magX.clear();
+        magY.clear();
+        magZ.clear();
+
+        filtered_gFX = new double[2][];
+        filtered_gFY = new double[2][];
+        filtered_gFZ = new double[2][];
+        filtered_gyroX = new double[2][];
+        filtered_gyroY = new double[2][];
+        filtered_gyroZ = new double[2][];
+        filtered_magX = new double[2][];
+        filtered_magY = new double[2][];
+        filtered_magZ = new double[2][];
+
+        dataString = new StringBuilder("time (s), gFX (m/s^2), gFY (m/s^2), gFZ (m/s^2), gyroX (rad/s), gyroY (rad/s), gyroZ (rad/s), magX (µT), magY (µT), magZ (µT)," +
+                " BR_Filtered gFX (m/s^2), BR_Filtered gFY (m/s^2), BR_Filtered gFZ (m/s^2), BR_Filtered gyroX (rad/s), BR_Filtered gyroY (rad/s), BR_Filtered gyroZ (rad/s)," +
+                " BR_Filtered magX (µT), BR_Filtered magY (µT), BR_Filtered magZ (µT), HR_Filtered gFX (m/s^2), HR_Filtered gFY (m/s^2), HR_Filtered gFZ (m/s^2)," +
+                " HR_Filtered gyroX (rad/s), HR_Filtered gyroY (rad/s), HR_Filtered gyroZ (rad/s), HR_Filtered magX (µT), HR_Filtered magY (µT), HR_Filtered magZ (µT)\n");
+    }
+
     private int shortestList(){
         int[] lengths = new int[10];
         int result;
@@ -224,7 +253,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
-
     }
 
     class timeStampAdder extends TimerTask {
