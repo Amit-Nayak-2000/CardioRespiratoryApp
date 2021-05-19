@@ -1,7 +1,8 @@
-#include "Filters_emxAPI.h"
-#include "Filters.h"
-#include "Filters_emxutil.h"
+#include "CardioRespAnalysis_emxAPI.h"
+#include "CardioRespAnalysis.h"
+#include "CardioRespAnalysis_emxutil.h"
 #include <stdlib.h>
+#include <string.h>
 
 emxArray_real_T *emxCreateND_real_T(int numDimensions, const int *size)
 {

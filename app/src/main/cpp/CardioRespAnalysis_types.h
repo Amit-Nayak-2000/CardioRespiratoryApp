@@ -1,5 +1,5 @@
-#ifndef FILTERS_TYPES_H
-#define FILTERS_TYPES_H
+#ifndef CARDIORESPANALYSIS_TYPES_H
+#define CARDIORESPANALYSIS_TYPES_H
 #include "rtwtypes.h"
 #ifndef typedef_emxArray_creal_T
 #define typedef_emxArray_creal_T

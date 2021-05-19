@@ -1,9 +1,9 @@
-#ifndef FILTERS_EMXUTIL_H
-#define FILTERS_EMXUTIL_H
+#ifndef CARDIORESPANALYSIS_EMXUTIL_H
+#define CARDIORESPANALYSIS_EMXUTIL_H
 #include <stddef.h>
 #include <stdlib.h>
 #include "rtwtypes.h"
-#include "Filters_types.h"
+#include "CardioRespAnalysis_types.h"
 
 extern void emxEnsureCapacity_creal_T(emxArray_creal_T *emxArray, int oldNumel);
 extern void emxEnsureCapacity_int32_T(emxArray_int32_T *emxArray, int oldNumel);

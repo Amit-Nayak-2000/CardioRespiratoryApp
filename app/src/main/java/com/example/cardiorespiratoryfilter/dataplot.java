@@ -25,7 +25,6 @@ public class dataplot extends AppCompatActivity {
 
         ArrayList<Entry> lineEntries = new ArrayList<Entry>();
 
-
         Bundle fileintent = getIntent().getExtras();
         String filename = fileintent.getString("Filename");
         String data;
@@ -42,9 +41,9 @@ public class dataplot extends AppCompatActivity {
                     break;
                 }
                 else{
-                    //use 19 or 20
+                    //use 3 for breathing or 4 for heartbeat
                     String values[] = data.split(",");
-                    lineEntries.add(new Entry(Float.parseFloat(values[0]), Float.parseFloat(values[19])));
+                    lineEntries.add(new Entry(Float.parseFloat(values[0]), Float.parseFloat(values[4])));
                 }
             }
             sc.close();

@@ -1,9 +1,9 @@
-#ifndef FILTERS_EMXAPI_H
-#define FILTERS_EMXAPI_H
+#ifndef CARDIORESPANALYSIS_EMXAPI_H
+#define CARDIORESPANALYSIS_EMXAPI_H
 #include <stddef.h>
 #include <stdlib.h>
 #include "rtwtypes.h"
-#include "Filters_types.h"
+#include "CardioRespAnalysis_types.h"
 
 extern emxArray_real_T *emxCreateND_real_T(int numDimensions, const int *size);
 extern emxArray_real_T *emxCreateWrapperND_real_T(double *data, int
