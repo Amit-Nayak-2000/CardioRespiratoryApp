@@ -1,6 +1,8 @@
 package com.example.cardiorespiratoryfilter;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.DialogFragment;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
@@ -21,40 +23,51 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
+import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener{
+import com.amazonaws.mobileconnectors.dynamodbv2.document.datatype.DynamoDBList;
+import com.amazonaws.mobileconnectors.dynamodbv2.document.datatype.Primitive;
 
+public class MainActivity extends AppCompatActivity implements SensorEventListener, SharePrompt.ShareDialogListener, dataPrompt.dataPromptListener {
     //GyroX for breathing
     //gFZ for heart beat
     SensorManager Eugene;
     Sensor Gyroscope;
     Sensor Gforce;
-//    Sensor Magnetometer;
 
+    //Record and plot buttons
     ToggleButton record;
     Button plot;
+
+    //timer and time variable
     Timer timer;
     float time;
 
+    //recording boolean and filewriter for logging signal values
     boolean isRecording = false;
     FileWriter Squidward;
+
+    //lists for recording time and sensor signals
     ArrayList<Float> timestamp;
     ArrayList<Double> gFZ;
     ArrayList<Double> gyroX;
 
-    //first dimension is either breathing rate or heart rate
-    //0 is breathing rate, 1 is heart rate
+    //filtered Signals
     double[] filtered_gyroX;
     double[] filtered_gFZ;
+
+    //dataset conversion for JNI
     double[] gyroXDataset;
     double[] gFZDataset;
-    public ArrayList<String> fileList;
-    double estimatedBR;
-    double estimatedHR;
+
+    // Breathing Rate 0, Heart Rate 1
     double[] rates;
 
-    StringBuilder dataString = new StringBuilder("time (s), gyroX (rad/s), gFZ (m/s^2), filtered gyroX (rad/s), filtered gFZ (m/s^2), breathing rate (breaths/min), heart rate (beats/min)\n");
+    //List of previously recorded data
+    public ArrayList<String> fileList;
 
+    //Template for .csv file
+    StringBuilder dataString = new StringBuilder("time (s), gyroX (rad/s), gFZ (m/s^2), filtered gyroX (rad/s), filtered gFZ (m/s^2), breathing rate (breaths/min), heart rate (beats/min)\n");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,12 +76,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         isRecording = false;
 
+        //Initialize Sensors
         Eugene = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         Gyroscope = Eugene.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         Gforce = Eugene.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-//        Magnetometer = Eugene.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
-
+        //Initialize Buttons and fileList
         record = findViewById(R.id.toggleButton);
         plot = findViewById(R.id.plot_button);
         fileList = new ArrayList<String>();
@@ -81,7 +94,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     initializeLists();
                     Eugene.registerListener(MainActivity.this, Gforce, 20000);
                     Eugene.registerListener(MainActivity.this, Gyroscope, 20000);
-//                    Eugene.registerListener(MainActivity.this, Magnetometer, 20000);
                     timer = new Timer();
                     time = 0;
                     timestamp.add(time);
@@ -95,27 +107,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     isRecording = false;
                     Eugene.flush(MainActivity.this);
                     Eugene.unregisterListener(MainActivity.this);
+//                    Toast.makeText(getApplicationContext(),"Analysing Data",Toast.LENGTH_SHORT).show();
                     getFilteredData();
-//                    heartBeatDataset = convertArray(gFY);
-//                    estimatedHR = FinalMetric(heartBeatDataset, false);
-//                    estimatedBR = FinalMetric(filtered_gyroX[0], true);
+                    confirmShareData();
+
                     try {
+                        //create log file and log data
                         Squidward = new FileWriter(new File(getStorage(), "Sensordata_" + System.currentTimeMillis() + ".csv"));
                         logDataToFile();
                         Squidward.write(String.valueOf(dataString));
-//                        Squidward.write("\n");
-//                        Squidward.write("Estimated Breaths per minute:," +  String.format("%.2f", estimatedBR)  + "\n");
-//                        Squidward.write("\n");
-//                        Squidward.write("Estimated Beats per minute:," +  String.format("%.2f", estimatedHR)  + "\n");
                         Squidward.close();
+                        clearEntries();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    clearEntries();
                 }
             }
         });
 
+        //Plotting
         plot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -131,6 +141,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
+    //get directory of files
     void listDirectory(File root){
         File[] files = root.listFiles();
         fileList.clear();
@@ -139,6 +150,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    //get storage location
     public String getStorage(){
         return Objects.requireNonNull(this.getExternalFilesDir(null)).getAbsolutePath();
     }
@@ -147,46 +159,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if(isRecording){
             switch(event.sensor.getType()){
                 case Sensor.TYPE_ACCELEROMETER:
-//                    gFX.add((double) event.values[0]);
-//                    gFY.add((double) event.values[1]);
                     gFZ.add((double) event.values[2]);
                     break;
                 case Sensor.TYPE_GYROSCOPE:
                     gyroX.add((double) event.values[0]);
-//                    gyroY.add((double) event.values[1]);
-//                    gyroZ.add((double) event.values[2]);
                     break;
-//                case Sensor.TYPE_MAGNETIC_FIELD:
-//                    magX.add((double) event.values[0]);
-//                    magY.add((double) event.values[1]);
-//                    magZ.add((double) event.values[2]);
-//                    break;
             }
         }
     }
 
+    //initialize data collection lists
     private void initializeLists(){
         timestamp = new ArrayList<>();
-//        gFX = new ArrayList<>();
-//        gFY = new ArrayList<>();
         gFZ = new ArrayList<>();
         gyroX = new ArrayList<>();
-//        gyroY = new ArrayList<>();
-//        gyroZ = new ArrayList<>();
-//        magX = new ArrayList<>();
-//        magY = new ArrayList<>();
-//        magZ = new ArrayList<>();
     }
 
+    //clear data collection lists
     private void clearEntries(){
         timestamp.clear();
         gFZ.clear();
         gyroX.clear();
-
-
+        rates[0] = 0;
+        rates[1] = 0;
+        for(int i = 0; i < shortestList(); i++){
+            gFZDataset[i] = 0;
+            gyroXDataset[i] = 0;
+            filtered_gyroX[i] = 0;
+            filtered_gFZ[i] = 0;
+        }
+        dataString.setLength(0);
         StringBuilder dataString = new StringBuilder("time (s), gyroX (rad/s), gFZ (m/s^2), filtered gyroX (rad/s), filtered gFZ (m/s^2), breathing rate (breaths/min), heart rate (beats/min)\n");
     }
 
+    //shortest list length
     private int shortestList(){
         int[] lengths = new int[3];
         int result;
@@ -206,12 +212,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return result;
     }
 
+    //record all the data to large string. Eventually written to file.
     @SuppressLint("DefaultLocale")
     public void logDataToFile(){
         for(int i = 0; i < shortestList(); i++){
             if(i == 0){
                 dataString.append(String.format("%.2f, %f, %f, %f, %f, %f, %f\n",
-                        timestamp.get(i), gyroX.get(i), gFZ.get(i), filtered_gyroX[i], filtered_gFZ[i], estimatedBR, estimatedHR));
+                        timestamp.get(i), gyroX.get(i), gFZ.get(i), filtered_gyroX[i], filtered_gFZ[i], rates[0], rates[1]));
             }
             else{
                 dataString.append(String.format("%.2f, %f, %f, %f, %f\n",
@@ -224,6 +231,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onAccuracyChanged(Sensor sensor, int i) {
     }
 
+    @Override
+    public void passBool(boolean shareData) {
+        if(shareData){
+            Toast.makeText(getApplicationContext(),"Sharing Data",Toast.LENGTH_SHORT).show();
+            DialogFragment shareFrag = new dataPrompt();
+            shareFrag.show(getSupportFragmentManager(), "share data");
+        }
+        else{
+            Toast.makeText(getApplicationContext(),"Not Sharing Data",Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    //time stamp incrementer
     class timeStampAdder extends TimerTask {
         @Override
         public void run() {
@@ -231,8 +251,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    //convert arraylist to regular array
     public double[] convertArray(ArrayList<Double> arr, int size){
-        double[] result = new double[arr.size()];
+        double[] result = new double[size];
 
         for(int i = 0; i < result.length; i++){
             result[i] = arr.get(i);
@@ -241,6 +262,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return result;
     }
 
+    //run signal processing algorithms
     public void getFilteredData(){
         int length = shortestList();
         filtered_gyroX = new double[length];
@@ -252,14 +274,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gFZDataset = convertArray(gFZ, length);
 
         FilterBrHr(dataPackage, gyroXDataset, gFZDataset);
-
-        estimatedBR = rates[0];
-        estimatedHR = rates[1];
     }
 
+    //Ask user if they want to share their data
+    public void confirmShareData(){
+        DialogFragment shareFrag = new SharePrompt();
+        shareFrag.show(getSupportFragmentManager(), "ask to share data");
+    }
+
+    //Convert data to Database if user desires
+    public void shareData(){
+        DynamoDBList rawBreathingList = new DynamoDBList();
+        DynamoDBList rawHeartList = new DynamoDBList();
+        DynamoDBList breathingList = new DynamoDBList();
+        DynamoDBList heartList = new DynamoDBList();
+        DynamoDBList timedata = new DynamoDBList();
+
+        for(int i = 0; i < shortestList(); i++){
+            rawBreathingList.add(new Primitive(gyroX.get(i).toString()));
+            rawHeartList.add(new Primitive(gFZ.get(i).toString()));
+            breathingList.add(new Primitive(filtered_gyroX[i]));
+            heartList.add(new Primitive(filtered_gFZ[i]));
+            timedata.add(new Primitive(timestamp.get(i)));
+        }
+    }
+
+    //get Data From Prompt
+    public void sendData(int age, int bpm, int brpm, String gender, boolean covid19){
+        Toast.makeText(getApplicationContext(),gender,Toast.LENGTH_SHORT).show();
+    }
+
+    //Signal Processing Algorithms (JNI)
     public native void FilterBrHr(DataStruct dataPackage, double[] breathing, double[] heart);
 
-    // Used to load the 'native-lib' library on application startup.
+    //load the 'native-lib' library on application startup.
     static {
         System.loadLibrary("Algorithm");
     }
