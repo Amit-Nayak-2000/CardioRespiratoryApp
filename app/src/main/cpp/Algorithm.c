@@ -11,7 +11,7 @@
 #include "tmwtypes.h"
 
 JNIEXPORT void JNICALL
-Java_com_example_cardiorespiratoryfilter_MainActivity_FilterBrHr(JNIEnv *env, jobject javaThis, jobject obj, jdoubleArray breathingSensor, jdoubleArray heartSensor) {
+Java_com_healthdevicesresearchgroup_cardiorespiratoryanalyzer_MainActivity_FilterBrHr(JNIEnv *env, jobject javaThis, jobject obj, jdoubleArray breathingSensor, jdoubleArray heartSensor) {
     jclass objectclass = (*env)->GetObjectClass(env, obj);
 
     jfieldID breathingField = (*env)->GetFieldID(env, objectclass, "breathingFilter", "[D");

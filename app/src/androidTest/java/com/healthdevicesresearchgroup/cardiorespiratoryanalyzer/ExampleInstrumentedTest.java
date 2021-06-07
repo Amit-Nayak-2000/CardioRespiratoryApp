@@ -1,4 +1,4 @@
-package com.example.cardiorespiratoryfilter;
+package com.healthdevicesresearchgroup.cardiorespiratoryanalyzer;
 
 import android.content.Context;
 

@@ -1,4 +1,4 @@
-package com.example.cardiorespiratoryfilter;
+package com.healthdevicesresearchgroup.cardiorespiratoryanalyzer;
 
 public class DataStruct {
     private double[] breathingFilter;

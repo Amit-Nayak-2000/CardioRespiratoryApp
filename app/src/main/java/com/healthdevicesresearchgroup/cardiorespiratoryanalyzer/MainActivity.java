@@ -1,32 +1,41 @@
-package com.example.cardiorespiratoryfilter;
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.DialogFragment;
+package com.healthdevicesresearchgroup.cardiorespiratoryanalyzer;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
+import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.hardware.SensorEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.Toast;
 import android.widget.ToggleButton;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.DialogFragment;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.common.primitives.Doubles;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+
+import java.util.Calendar;
+import java.util.List;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
-import android.widget.Toast;
 
-import com.amazonaws.mobileconnectors.dynamodbv2.document.datatype.DynamoDBList;
-import com.amazonaws.mobileconnectors.dynamodbv2.document.datatype.Primitive;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener, SharePrompt.ShareDialogListener, dataPrompt.dataPromptListener {
     //GyroX for breathing
@@ -41,14 +50,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     //timer and time variable
     Timer timer;
-    float time;
+    Double time;
 
     //recording boolean and filewriter for logging signal values
     boolean isRecording = false;
     FileWriter Squidward;
 
     //lists for recording time and sensor signals
-    ArrayList<Float> timestamp;
+    List<Double> timestamp;
     ArrayList<Double> gFZ;
     ArrayList<Double> gyroX;
 
@@ -67,12 +76,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public ArrayList<String> fileList;
 
     //Template for .csv file
-    StringBuilder dataString = new StringBuilder("time (s), gyroX (rad/s), gFZ (m/s^2), filtered gyroX (rad/s), filtered gFZ (m/s^2), breathing rate (breaths/min), heart rate (beats/min)\n");
+    StringBuilder dataString ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        setTitle("Cardiorespiratory Analyzer");
 
         isRecording = false;
 
@@ -95,7 +105,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     Eugene.registerListener(MainActivity.this, Gforce, 20000);
                     Eugene.registerListener(MainActivity.this, Gyroscope, 20000);
                     timer = new Timer();
-                    time = 0;
+                    time = 0.00D;
+                    timestamp = new ArrayList<>();
                     timestamp.add(time);
                     timer.scheduleAtFixedRate(new timeStampAdder(), 20, 20);
                     isRecording = true;
@@ -103,21 +114,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 else {
                     // The toggle is disabled
                     timer.cancel();
-                    time = 0;
+                    time = 0.00D;
                     isRecording = false;
                     Eugene.flush(MainActivity.this);
                     Eugene.unregisterListener(MainActivity.this);
-//                    Toast.makeText(getApplicationContext(),"Analysing Data",Toast.LENGTH_SHORT).show();
                     getFilteredData();
                     confirmShareData();
-
                     try {
                         //create log file and log data
-                        Squidward = new FileWriter(new File(getStorage(), "Sensordata_" + System.currentTimeMillis() + ".csv"));
+                        Squidward = new FileWriter(new File(getStorage(), "Sensordata_" + Calendar.getInstance().getTime().toString() + ".csv"));
                         logDataToFile();
                         Squidward.write(String.valueOf(dataString));
                         Squidward.close();
-                        clearEntries();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -151,7 +159,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     //get storage location
-    public String getStorage(){
+    public String getStorage() {
         return Objects.requireNonNull(this.getExternalFilesDir(null)).getAbsolutePath();
     }
 
@@ -173,6 +181,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         timestamp = new ArrayList<>();
         gFZ = new ArrayList<>();
         gyroX = new ArrayList<>();
+
+        double[] rates;
+        double[] gFZDataset;
+        double[] gyroXDataset;
+        double[] filtered_gyroX;
+        double[] filtered_gFZ;
     }
 
     //clear data collection lists
@@ -215,6 +229,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //record all the data to large string. Eventually written to file.
     @SuppressLint("DefaultLocale")
     public void logDataToFile(){
+        dataString = new StringBuilder("time (s), gyroX (rad/s), gFZ (m/s^2), filtered gyroX (rad/s), filtered gFZ (m/s^2), breathing rate (breaths/min), heart rate (beats/min)\n");
+
         for(int i = 0; i < shortestList(); i++){
             if(i == 0){
                 dataString.append(String.format("%.2f, %f, %f, %f, %f, %f, %f\n",
@@ -241,6 +257,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         else{
             Toast.makeText(getApplicationContext(),"Not Sharing Data",Toast.LENGTH_SHORT).show();
         }
+    }
+
+    public List<Double> convertToList(double[] input){
+        return Doubles.asList(input);
+    }
+
+    public List<Double> truncateList(List<Double> input){
+        return input.subList(0,shortestList());
     }
 
     //time stamp incrementer
@@ -282,26 +306,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         shareFrag.show(getSupportFragmentManager(), "ask to share data");
     }
 
-    //Convert data to Database if user desires
-    public void shareData(){
-        DynamoDBList rawBreathingList = new DynamoDBList();
-        DynamoDBList rawHeartList = new DynamoDBList();
-        DynamoDBList breathingList = new DynamoDBList();
-        DynamoDBList heartList = new DynamoDBList();
-        DynamoDBList timedata = new DynamoDBList();
-
-        for(int i = 0; i < shortestList(); i++){
-            rawBreathingList.add(new Primitive(gyroX.get(i).toString()));
-            rawHeartList.add(new Primitive(gFZ.get(i).toString()));
-            breathingList.add(new Primitive(filtered_gyroX[i]));
-            heartList.add(new Primitive(filtered_gFZ[i]));
-            timedata.add(new Primitive(timestamp.get(i)));
-        }
-    }
-
     //get Data From Prompt
     public void sendData(int age, int bpm, int brpm, String gender, boolean covid19){
-        Toast.makeText(getApplicationContext(),gender,Toast.LENGTH_SHORT).show();
+        DataDoc document = new DataDoc(age, rates[1], rates[0], bpm, brpm, gender, covid19, false, convertToList(gFZDataset), convertToList(filtered_gFZ), convertToList(gyroXDataset), convertToList(filtered_gyroX), truncateList(timestamp));
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("recordings")
+                .add(document)
+                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                    @Override
+                    public void onSuccess(DocumentReference documentReference) {
+                        Toast.makeText(getApplicationContext(), "Data successfully shared",Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(getApplicationContext(), " Failed to upload data",Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     //Signal Processing Algorithms (JNI)

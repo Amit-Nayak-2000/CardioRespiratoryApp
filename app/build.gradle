@@ -1,12 +1,13 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
 
 android {
     compileSdkVersion 30
     buildToolsVersion "30.0.2"
 
     defaultConfig {
-        applicationId "com.example.cardiorespiratoryfilter"
-        minSdkVersion 23
+        applicationId "com.healthdevicesresearchgroup.cardiorespiratoryanalyzer"
+        minSdkVersion 24
         targetSdkVersion 30
         versionCode 1
         versionName "1.0"
@@ -31,6 +32,7 @@ android {
             version "3.10.2"
         }
     }
+    ndkVersion '21.3.6528147'
 }
 
 repositories {
@@ -45,7 +47,6 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
-    implementation 'com.amazonaws:aws-android-sdk-core:2.6.+'
-    implementation 'com.amazonaws:aws-android-sdk-ddb:2.6.+'
-    implementation 'com.amazonaws:aws-android-sdk-ddb-document:2.6.+'
+    implementation platform('com.google.firebase:firebase-bom:28.0.1')
+    implementation 'com.google.firebase:firebase-firestore'
 }
