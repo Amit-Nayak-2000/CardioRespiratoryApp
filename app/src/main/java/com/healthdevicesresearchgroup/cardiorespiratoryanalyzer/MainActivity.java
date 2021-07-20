@@ -37,12 +37,13 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener, SharePrompt.ShareDialogListener, dataPrompt.dataPromptListener {
+public class MainActivity extends AppCompatActivity implements SensorEventListener, SharePrompt.ShareDialogListener, DataPrompt.dataPromptListener {
     //GyroX for breathing
     //gFZ for heart beat
     SensorManager Eugene;
     Sensor Gyroscope;
     Sensor Gforce;
+    Sensor Magnetometer;
 
     //Record and plot buttons
     ToggleButton record;
@@ -60,6 +61,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     List<Double> timestamp;
     ArrayList<Double> gFZ;
     ArrayList<Double> gyroX;
+    ArrayList<Double> gyroY;
+    ArrayList<Double> gyroZ;
+    ArrayList<Double> gFY;
+    ArrayList<Double> gFX;
+    ArrayList<Double> magX;
+    ArrayList<Double> magY;
+    ArrayList<Double> magZ;
+
 
     //filtered Signals
     double[] filtered_gyroX;
@@ -76,7 +85,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public ArrayList<String> fileList;
 
     //Template for .csv file
-    StringBuilder dataString ;
+    StringBuilder dataString;
+
+    String filename;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,6 +101,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         Eugene = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         Gyroscope = Eugene.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         Gforce = Eugene.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        Magnetometer = Eugene.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
         //Initialize Buttons and fileList
         record = findViewById(R.id.toggleButton);
@@ -104,6 +116,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     initializeLists();
                     Eugene.registerListener(MainActivity.this, Gforce, 20000);
                     Eugene.registerListener(MainActivity.this, Gyroscope, 20000);
+                    Eugene.registerListener(MainActivity.this, Magnetometer, 20000);
                     timer = new Timer();
                     time = 0.00D;
                     timestamp = new ArrayList<>();
@@ -122,10 +135,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     confirmShareData();
                     try {
                         //create log file and log data
-                        Squidward = new FileWriter(new File(getStorage(), "Sensordata_" + Calendar.getInstance().getTime().toString() + ".csv"));
+                        filename = "Sensordata_" + Calendar.getInstance().getTime().toString() + ".csv";
+                        Squidward = new FileWriter(new File(getStorage(), filename));
                         logDataToFile();
                         Squidward.write(String.valueOf(dataString));
                         Squidward.close();
+                        filename = getStorage() + "/" + filename;
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -139,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             public void onClick(View v) {
                 File root = new File(getStorage());
                 listDirectory(root);
-                Intent intent = new Intent(MainActivity.this, Fileviewer.class);
+                Intent intent = new Intent(MainActivity.this, FileViewer.class);
                 Bundle args = new Bundle();
                 args.putSerializable("ARRAYLIST", (Serializable)fileList);
                 intent.putExtra("BUNDLE", args);
@@ -168,10 +183,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             switch(event.sensor.getType()){
                 case Sensor.TYPE_ACCELEROMETER:
                     gFZ.add((double) event.values[2]);
+                    gFY.add((double) event.values[1]);
+                    gFX.add((double) event.values[0]);
                     break;
                 case Sensor.TYPE_GYROSCOPE:
                     gyroX.add((double) event.values[0]);
+                    gyroY.add((double) event.values[1]);
+                    gyroZ.add((double) event.values[2]);
                     break;
+                case Sensor.TYPE_MAGNETIC_FIELD:
+                    magX.add((double) event.values[0]);
+                    magY.add((double) event.values[1]);
+                    magZ.add((double) event.values[2]);
             }
         }
     }
@@ -181,6 +204,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         timestamp = new ArrayList<>();
         gFZ = new ArrayList<>();
         gyroX = new ArrayList<>();
+        gyroY = new ArrayList<>();
+        gyroZ = new ArrayList<>();
+        gFY = new ArrayList<>();
+        gFX = new ArrayList<>();
+        magX = new ArrayList<>();
+        magY = new ArrayList<>();
+        magZ = new ArrayList<>();
+
 
         double[] rates;
         double[] gFZDataset;
@@ -193,7 +224,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void clearEntries(){
         timestamp.clear();
         gFZ.clear();
+        gFY.clear();
+        gFX.clear();
         gyroX.clear();
+        gyroY.clear();
+        gyroZ.clear();
+        magX.clear();
+        magY.clear();
+        magZ.clear();
         rates[0] = 0;
         rates[1] = 0;
         for(int i = 0; i < shortestList(); i++){
@@ -203,21 +241,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             filtered_gFZ[i] = 0;
         }
         dataString.setLength(0);
-        StringBuilder dataString = new StringBuilder("time (s), gyroX (rad/s), gFZ (m/s^2), filtered gyroX (rad/s), filtered gFZ (m/s^2), breathing rate (breaths/min), heart rate (beats/min)\n");
+        StringBuilder dataString = new StringBuilder("time (s), gyroX (rad/s), gFZ (m/s^2), filtered gyroX (rad/s), filtered gFZ (m/s^2), gyroY (rad/s), gyroZ (rad/s), gFX (m/s^2), gFY (m/s^2), magX (µT), magY (µT), magZ (µT), breathing rate (breaths/min), heart rate (beats/min)\n");
     }
 
     //shortest list length
     private int shortestList(){
-        int[] lengths = new int[3];
+        int[] lengths = new int[4];
         int result;
 
         lengths[0] = gFZ.size();
         lengths[1] = gyroX.size();
         lengths[2] = timestamp.size();
+        lengths[3] = magY.size();
 
         result = lengths[0];
 
-        for(int i = 1; i < 3; i++){
+        for(int i = 1; i < 4; i++){
             if(lengths[i-1] >= lengths[i]){
                 result = lengths[i];
             }
@@ -229,16 +268,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //record all the data to large string. Eventually written to file.
     @SuppressLint("DefaultLocale")
     public void logDataToFile(){
-        dataString = new StringBuilder("time (s), gyroX (rad/s), gFZ (m/s^2), filtered gyroX (rad/s), filtered gFZ (m/s^2), breathing rate (breaths/min), heart rate (beats/min)\n");
+        dataString = new StringBuilder("time (s), gyroX (rad/s), gFZ (m/s^2), filtered gyroX (rad/s), filtered gFZ (m/s^2), gyroY (rad/s), gyroZ (rad/s), gFX (m/s^2), gFY (m/s^2), magX (µT), magY (µT), magZ (µT), breathing rate (breaths/min), heart rate (beats/min)\n");
 
         for(int i = 0; i < shortestList(); i++){
             if(i == 0){
-                dataString.append(String.format("%.2f, %f, %f, %f, %f, %f, %f\n",
-                        timestamp.get(i), gyroX.get(i), gFZ.get(i), filtered_gyroX[i], filtered_gFZ[i], rates[0], rates[1]));
+                dataString.append(String.format("%.2f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n",
+                        timestamp.get(i), gyroX.get(i), gFZ.get(i), filtered_gyroX[i], filtered_gFZ[i], gyroY.get(i), gyroZ.get(i), gFX.get(i), gFY.get(i), magX.get(i), magY.get(i), magZ.get(i), rates[0], rates[1]));
             }
             else{
-                dataString.append(String.format("%.2f, %f, %f, %f, %f\n",
-                        timestamp.get(i), gyroX.get(i), gFZ.get(i), filtered_gyroX[i], filtered_gFZ[i]));
+                dataString.append(String.format("%.2f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n",
+                        timestamp.get(i), gyroX.get(i), gFZ.get(i), filtered_gyroX[i], filtered_gFZ[i], gyroY.get(i), gyroZ.get(i), gFX.get(i), gFY.get(i), magX.get(i), magY.get(i), magZ.get(i)));
             }
         }
     }
@@ -251,11 +290,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void passBool(boolean shareData) {
         if(shareData){
             Toast.makeText(getApplicationContext(),"Sharing Data",Toast.LENGTH_SHORT).show();
-            DialogFragment shareFrag = new dataPrompt();
+            DialogFragment shareFrag = new DataPrompt();
             shareFrag.show(getSupportFragmentManager(), "share data");
         }
         else{
             Toast.makeText(getApplicationContext(),"Not Sharing Data",Toast.LENGTH_SHORT).show();
+            displayResults(filename);
         }
     }
 
@@ -304,6 +344,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void confirmShareData(){
         DialogFragment shareFrag = new SharePrompt();
         shareFrag.show(getSupportFragmentManager(), "ask to share data");
+
     }
 
     //get Data From Prompt
@@ -326,6 +367,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         Toast.makeText(getApplicationContext(), " Failed to upload data",Toast.LENGTH_SHORT).show();
                     }
                 });
+
+        displayResults(filename);
+    }
+
+    public void displayResults(String filename){
+        Intent intent = new Intent(MainActivity.this, DataPlot.class);
+        intent.putExtra("Filename", filename);
+        startActivity(intent);
     }
 
     //Signal Processing Algorithms (JNI)

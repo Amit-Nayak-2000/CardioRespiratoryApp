@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.lang.String;
 
 
-public class Fileviewer extends ListActivity {
+public class FileViewer extends ListActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,7 +38,7 @@ public class Fileviewer extends ListActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent intent = new Intent(Fileviewer.this, dataplot.class);
+                Intent intent = new Intent(FileViewer.this, DataPlot.class);
                 intent.putExtra("Filename", filenames.get(position));
                 startActivity(intent);
             }

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">CardioRespiratoryFilter</string>
+    <string name="item_1">Item 1</string>
 </resources>

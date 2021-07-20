@@ -14,8 +14,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name="com.healthdevicesresearchgroup.cardiorespiratoryanalyzer.dataplot"></activity>
-        <activity android:name="com.healthdevicesresearchgroup.cardiorespiratoryanalyzer.Fileviewer" />
+        <activity android:name="com.healthdevicesresearchgroup.cardiorespiratoryanalyzer.DataPlot"></activity>
+        <activity android:name="com.healthdevicesresearchgroup.cardiorespiratoryanalyzer.FileViewer" />
         <activity android:name="com.healthdevicesresearchgroup.cardiorespiratoryanalyzer.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

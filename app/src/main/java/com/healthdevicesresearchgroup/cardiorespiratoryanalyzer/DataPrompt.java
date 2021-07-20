@@ -15,7 +15,7 @@ import android.widget.RadioGroup;
 
 import androidx.appcompat.app.AppCompatDialogFragment;
 
-public class dataPrompt extends AppCompatDialogFragment {
+public class DataPrompt extends AppCompatDialogFragment {
     private dataPromptListener listener;
     private EditText age;
     private EditText BRPM;
@@ -146,7 +146,7 @@ public class dataPrompt extends AppCompatDialogFragment {
         super.onAttach(context);
 
         try {
-            listener = (dataPrompt.dataPromptListener) context;
+            listener = (DataPrompt.dataPromptListener) context;
         } catch (ClassCastException e) {
             throw new ClassCastException(context.toString());
         }
